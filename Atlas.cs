@@ -124,6 +124,7 @@ namespace TextureAsset
                 if (filename==SpriteName)
                 {
                     texImage = new TexImage(texture, filename, LeftBottomLocation, TopRightLocation);
+                    break;
                 }
             }
 
