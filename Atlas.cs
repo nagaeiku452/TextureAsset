@@ -117,8 +117,22 @@ namespace TextureAsset
                 int SubImageWidth = TopRightLocation.X - LeftBottomLocation.X + 1;
                 int SubImageHeight = TopRightLocation.Y - LeftBottomLocation.Y + 1;
 
-                Image<Rgba32> image = Origin_image.Clone();
-                image.Mutate(i => i.Crop(new SixLabors.ImageSharp.Rectangle(LeftBottomLocation.X, Origin_image.Height - TopRightLocation.Y , SubImageWidth, SubImageHeight)));
+                Image<Rgba32> image = new Image<Rgba32>(SubImageWidth, SubImageHeight);
+                for (int i = 0; i < SubImageWidth; i++)
+                {
+                    for (int j = 0; j < SubImageHeight; j++)
+                    {
+                        try
+                        {
+                            image[i, j] = Origin_image[LeftBottomLocation.X + i, Origin_image.Height - TopRightLocation.Y + j];
+                        }
+                        catch(Exception ex)
+                        {
+                            Console.WriteLine("error convert atlas to bitmap" + ex.ToString());
+                        }
+                    }
+                }
+                //image.Mutate(i => i.Crop(new SixLabors.ImageSharp.Rectangle(LeftBottomLocation.X, Origin_image.Height - TopRightLocation.Y , SubImageWidth, SubImageHeight)));
                 using (var memoryStream = new MemoryStream())
                 {
                     image.Save(memoryStream, new PngEncoder());
