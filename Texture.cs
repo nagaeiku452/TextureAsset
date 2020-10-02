@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp;
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Processing;
+using System.Threading.Tasks;
 
 namespace TextureAsset
 {
@@ -19,7 +20,7 @@ namespace TextureAsset
         internal Texture(string str)
         {
             //had to initialize a gamewindow before using GL function; 
-            GameWindow g = new GameWindow();
+            //GameWindow g = new GameWindow();
 
             handle = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2D, handle);
@@ -29,9 +30,9 @@ namespace TextureAsset
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToBorder);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToBorder);
             //Load the image
-            Image<Rgba32> image = Image.Load<Rgba32>(str);
 
             OriginFileName = str;
+            Image<Rgba32> image = Image.Load<Rgba32>(str);
             this.Width = image.Width;
             this.Height = image.Height;
             //Console.WriteLine(Dilation);
@@ -69,7 +70,7 @@ namespace TextureAsset
             tempPixels.Clear();
             pixels.Clear();
             GL.BindTexture(TextureTarget.Texture2D, 0);
-            g.Close();
+            //g.Close();
             //Console.WriteLine(tempPixels.Count);
             //Console.WriteLine(pixels[3].ToString());
         }

@@ -96,7 +96,11 @@ namespace TextureAsset
             }
             Dictionary<string, Bitmap> keyValuePairs = new Dictionary<string, Bitmap>();
             Image<Rgba32> Origin_image = Image.Load<Rgba32>(AtlasPath);
+
+            //streamreader is really slow(about 750 ms) ,may need to accelerate
             StreamReader metafile = new StreamReader(AtlasMeta);
+            //
+
             string filename = "";
             Point LeftBottomLocation = new Point();
             Point TopRightLocation = new Point();
@@ -166,7 +170,7 @@ namespace TextureAsset
         /// the height of output,defualt is 4096
         /// </param>
         /// <param name="imagetype">
-        /// the filetype encoder of atlas,default is null (which leads to png format)
+        /// the filetype encoder of atlas,default is null (which leads to tga format)
         /// </param>
         public static void MakeAtlas(string AtlasPath, string folderpath, uint imageWidth = 8192, uint imageHeight = 4096, uint gap = 1, IImageEncoder imagetype = null)
         {
@@ -286,6 +290,10 @@ namespace TextureAsset
             //save meta file
             A.Save(imagefile, imagetype);
             metafile.Flush();
+
+            imagefile.Close();
+            A.Dispose();
+            metafile.Close();
         }
     }
 }
