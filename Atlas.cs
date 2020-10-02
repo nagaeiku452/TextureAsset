@@ -77,6 +77,61 @@ namespace TextureAsset
             return texImageset;
         }
         /// <summary>
+        /// Read from an existing atlas and decode it as multiple squaresprite;        
+        /// should contain one image and one meta file
+        /// </summary>
+        /// <param name="AtlasPath">
+        /// the path of atlas
+        /// </param>
+        /// <returns></returns>
+        public static TexImage SingleReadFromAtlas(string AtlasPath,string SpriteName)
+        {
+            string AtlasMeta = AtlasPath + ".meta";
+            if (!File.Exists(AtlasPath))
+            {
+                Console.WriteLine("atlas image lost!");
+                return null;
+            }
+            if (!File.Exists(AtlasMeta))
+            {
+                Console.WriteLine("atlas metafile lost!");
+                return null;
+            }
+
+            Texture texture = TextureSet.Generate_texture(AtlasPath);
+            TexImage texImage = null;
+
+            BinaryReader metafile = new BinaryReader(File.Open(AtlasMeta, FileMode.Open));
+            string filename;
+            Point LeftBottomLocation = new Point();
+            Point TopRightLocation = new Point();
+
+            while (metafile.BaseStream.Position != metafile.BaseStream.Length)
+            {
+                try
+                {
+                    filename = metafile.ReadString();
+                    LeftBottomLocation.X = metafile.ReadInt32();
+                    LeftBottomLocation.Y = metafile.ReadInt32();
+                    TopRightLocation.X = metafile.ReadInt32();
+                    TopRightLocation.Y = metafile.ReadInt32();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("metafile corrupt!!" + ex.ToString());
+                    return null;
+                }
+                if (filename==SpriteName)
+                {
+                    texImage = new TexImage(texture, filename, LeftBottomLocation, TopRightLocation);
+                }
+            }
+
+            metafile.Close();
+            return texImage;
+        }
+
+        /// <summary>
         /// Read from an existing atlas and decode it as multiple bitmap
         /// should contain one image and one meta file
         /// </summary>
