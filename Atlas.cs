@@ -118,7 +118,7 @@ namespace TextureAsset
                 int SubImageHeight = TopRightLocation.Y - LeftBottomLocation.Y + 1;
 
                 Image<Rgba32> image = Origin_image.Clone();
-                image.Mutate(i => i.Crop(new SixLabors.ImageSharp.Rectangle(LeftBottomLocation.X, Origin_image.Height - LeftBottomLocation.Y , SubImageWidth, SubImageHeight)));
+                image.Mutate(i => i.Crop(new SixLabors.ImageSharp.Rectangle(LeftBottomLocation.X, Origin_image.Height - TopRightLocation.Y , SubImageWidth, SubImageHeight)));
                 using (var memoryStream = new MemoryStream())
                 {
                     image.Save(memoryStream, new PngEncoder());
