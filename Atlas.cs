@@ -49,28 +49,31 @@ namespace TextureAsset
             List<TexImage> texImageset = new List<TexImage>();
             Texture texture = TextureSet.Generate_texture(AtlasPath);
 
-            StreamReader metafile = new StreamReader(AtlasMeta);
-            string filename = "";
+            BinaryReader metafile = new BinaryReader(File.Open(AtlasMeta,FileMode.Open));
+            string filename;
             Point LeftBottomLocation = new Point();
             Point TopRightLocation = new Point();
-            while (!metafile.EndOfStream)
+
+            while (metafile.BaseStream.Position!=metafile.BaseStream.Length)
             {
                 try
                 {
-                    filename = metafile.ReadLine();
-                    LeftBottomLocation.X = int.Parse(metafile.ReadLine());
-                    LeftBottomLocation.Y = int.Parse(metafile.ReadLine());
-                    TopRightLocation.X = int.Parse(metafile.ReadLine());
-                    TopRightLocation.Y = int.Parse(metafile.ReadLine());
+                    filename = metafile.ReadString();
+                    LeftBottomLocation.X = metafile.ReadInt32();
+                    LeftBottomLocation.Y = metafile.ReadInt32();
+                    TopRightLocation.X = metafile.ReadInt32();
+                    TopRightLocation.Y = metafile.ReadInt32();
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine("metafile corrupt!!" + ex.ToString());
+                    return null;
                 }
                 TexImage texImage = new TexImage(texture, filename, LeftBottomLocation, TopRightLocation);
                 texImageset.Add(texImage);
             }
 
+            metafile.Close();
             return texImageset;
         }
         /// <summary>
@@ -98,25 +101,26 @@ namespace TextureAsset
             Image<Rgba32> Origin_image = Image.Load<Rgba32>(AtlasPath);
 
             //streamreader is really slow(about 750 ms) ,may need to accelerate
-            StreamReader metafile = new StreamReader(AtlasMeta);
+            BinaryReader metafile = new BinaryReader(File.Open(AtlasMeta, FileMode.Open));
             //
 
-            string filename = "";
+            string filename;
             Point LeftBottomLocation = new Point();
             Point TopRightLocation = new Point();
-            while (!metafile.EndOfStream)
+            while (metafile.BaseStream.Position != metafile.BaseStream.Length)
             {
                 try
                 {
-                    filename = metafile.ReadLine();
-                    LeftBottomLocation.X = int.Parse(metafile.ReadLine());
-                    LeftBottomLocation.Y = int.Parse(metafile.ReadLine());
-                    TopRightLocation.X = int.Parse(metafile.ReadLine());
-                    TopRightLocation.Y = int.Parse(metafile.ReadLine());
+                    filename = metafile.ReadString();
+                    LeftBottomLocation.X = metafile.ReadInt32();
+                    LeftBottomLocation.Y = metafile.ReadInt32();
+                    TopRightLocation.X = metafile.ReadInt32();
+                    TopRightLocation.Y = metafile.ReadInt32();
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine("metafile corrupt!!" + ex.ToString());
+                    return null;
                 }
                 int SubImageWidth = TopRightLocation.X - LeftBottomLocation.X + 1;
                 int SubImageHeight = TopRightLocation.Y - LeftBottomLocation.Y + 1;
@@ -133,6 +137,7 @@ namespace TextureAsset
                         catch(Exception ex)
                         {
                             Console.WriteLine("error convert atlas to bitmap" + ex.ToString());
+                            return null;
                         }
                     }
                 }
@@ -145,8 +150,11 @@ namespace TextureAsset
 
                     keyValuePairs.Add(filename, new Bitmap(memoryStream));
                 }
+                image.Dispose();
             }
 
+            Origin_image.Dispose();
+            metafile.Close();
             return keyValuePairs;
         }
 
@@ -217,7 +225,7 @@ namespace TextureAsset
             }
 
             FileStream imagefile = new FileStream(AtlasPath + @"\" + foldername + atlasformat, FileMode.OpenOrCreate, FileAccess.Write);
-            StreamWriter metafile = new StreamWriter(AtlasPath + @"\" + foldername + atlasformat + ".meta");
+            BinaryWriter metafile = new BinaryWriter(File.Open(AtlasPath + @"\" + foldername + atlasformat + ".meta",FileMode.Truncate));
 
 
             //check for image's extension first 
@@ -239,7 +247,7 @@ namespace TextureAsset
             //int horizonoffset = 0;
             int horizontalOffset_precached = 0;
             Point Offset = new Point(0, 0);
-            Point PreviousOffset = Offset;
+            //Point PreviousOffset = Offset;
 
             foreach (KeyValuePair<string, Image<Rgba32>> keyValuePair in SortedImageSet)
             {
@@ -278,11 +286,11 @@ namespace TextureAsset
 
                 //ImageSharp loads from the top-left pixel, whereas OpenGL loads from the bottom-left, causing the texture to be flipped vertically.
                 //This will correct that, making the texture display properly.
-                metafile.WriteLine(str);
-                metafile.WriteLine(Offset.X);
-                metafile.WriteLine(imageHeight - (Offset.Y + keyValuePair.Value.Height - 1));
-                metafile.WriteLine(Offset.X + keyValuePair.Value.Width - 1);
-                metafile.WriteLine(imageHeight - Offset.Y);
+                metafile.Write(str);
+                metafile.Write(Offset.X);
+                metafile.Write((int)imageHeight - (Offset.Y + keyValuePair.Value.Height - 1));
+                metafile.Write(Offset.X + keyValuePair.Value.Width - 1);
+                metafile.Write((int)imageHeight - Offset.Y);
 
                 Offset.Y += keyValuePair.Value.Height + (int)gap;
             }
@@ -296,4 +304,30 @@ namespace TextureAsset
             metafile.Close();
         }
     }
+
+    //[Serializable]
+    //class AtlasInfo:ISerializable
+    //{
+    //    internal readonly string filename = "";
+    //    internal readonly Point LeftBottomLocation = new Point();
+    //    internal readonly Point TopRightLocation = new Point();
+
+    //    public void GetObjectData(SerializationInfo info, StreamingContext context)
+    //    {
+    //        info.AddValue("filename", filename, typeof(string));
+    //        info.AddValue("LeftBottomLocation", LeftBottomLocation, typeof(Point));
+    //        info.AddValue("TopRightLocation", TopRightLocation, typeof(Point));
+    //    }
+
+    //    public AtlasInfo(SerializationInfo info, StreamingContext context)
+    //    {
+    //        filename = (string)info.GetValue("filename", typeof(string));
+    //        LeftBottomLocation = (Point)info.GetValue("LeftBottomLocation", typeof(Point));
+    //        TopRightLocation = (Point)info.GetValue("TopRightLocation", typeof(Point));
+    //    }
+
+    //    public AtlasInfo()
+    //    {
+    //    }
+    //} 
 }
