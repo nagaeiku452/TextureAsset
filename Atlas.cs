@@ -16,13 +16,14 @@ using SixLabors.ImageSharp.Formats.Tga;
 using System.ComponentModel;
 using Point = System.Drawing.Point;
 using Image = SixLabors.ImageSharp.Image;
+using MyInterface;
 
 namespace TextureAsset
 {
     /// <summary>
     /// A Static Class to deal with Atlas texture
     /// </summary>
-    public static class Atlas
+    public static class Atlas 
     {
         /// <summary>
         /// Read from an existing atlas and decode it as multiple squaresprite;        
@@ -50,26 +51,20 @@ namespace TextureAsset
             Texture texture = TextureSet.Generate_texture(AtlasPath);
 
             BinaryReader metafile = new BinaryReader(File.Open(AtlasMeta,FileMode.Open));
-            string filename;
-            Point LeftBottomLocation = new Point();
-            Point TopRightLocation = new Point();
+            TexImageInfo texImageInfo = new TexImageInfo();
 
             while (metafile.BaseStream.Position!=metafile.BaseStream.Length)
             {
                 try
                 {
-                    filename = metafile.ReadString();
-                    LeftBottomLocation.X = metafile.ReadInt32();
-                    LeftBottomLocation.Y = metafile.ReadInt32();
-                    TopRightLocation.X = metafile.ReadInt32();
-                    TopRightLocation.Y = metafile.ReadInt32();
+                    texImageInfo.BinaryRead(metafile);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine("metafile corrupt!!" + ex.ToString());
                     return null;
                 }
-                TexImage texImage = new TexImage(texture, filename, LeftBottomLocation, TopRightLocation);
+                TexImage texImage = new TexImage(texture, texImageInfo.filename, texImageInfo.LeftBottomLocation, texImageInfo.TopRightLocation);
                 texImageset.Add(texImage);
             }
 
@@ -102,28 +97,22 @@ namespace TextureAsset
             TexImage texImage = null;
 
             BinaryReader metafile = new BinaryReader(File.Open(AtlasMeta, FileMode.Open));
-            string filename;
-            Point LeftBottomLocation = new Point();
-            Point TopRightLocation = new Point();
+            TexImageInfo texImageInfo = new TexImageInfo();
 
             while (metafile.BaseStream.Position != metafile.BaseStream.Length)
             {
                 try
                 {
-                    filename = metafile.ReadString();
-                    LeftBottomLocation.X = metafile.ReadInt32();
-                    LeftBottomLocation.Y = metafile.ReadInt32();
-                    TopRightLocation.X = metafile.ReadInt32();
-                    TopRightLocation.Y = metafile.ReadInt32();
+                    texImageInfo.BinaryRead(metafile);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine("metafile corrupt!!" + ex.ToString());
                     return null;
                 }
-                if (filename==SpriteName)
+                if (texImageInfo.filename == SpriteName)
                 {
-                    texImage = new TexImage(texture, filename, LeftBottomLocation, TopRightLocation);
+                    texImage = new TexImage(texture, texImageInfo.filename, texImageInfo.LeftBottomLocation, texImageInfo.TopRightLocation);
                     break;
                 }
             }
@@ -156,30 +145,22 @@ namespace TextureAsset
             Dictionary<string, Bitmap> keyValuePairs = new Dictionary<string, Bitmap>();
             Image<Rgba32> Origin_image = Image.Load<Rgba32>(AtlasPath);
 
-            //streamreader is really slow(about 750 ms) ,may need to accelerate
             BinaryReader metafile = new BinaryReader(File.Open(AtlasMeta, FileMode.Open));
-            //
 
-            string filename;
-            Point LeftBottomLocation = new Point();
-            Point TopRightLocation = new Point();
+            TexImageInfo texImageInfo = new TexImageInfo();
             while (metafile.BaseStream.Position != metafile.BaseStream.Length)
             {
                 try
                 {
-                    filename = metafile.ReadString();
-                    LeftBottomLocation.X = metafile.ReadInt32();
-                    LeftBottomLocation.Y = metafile.ReadInt32();
-                    TopRightLocation.X = metafile.ReadInt32();
-                    TopRightLocation.Y = metafile.ReadInt32();
+                    texImageInfo.BinaryRead(metafile);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine("metafile corrupt!!" + ex.ToString());
                     return null;
                 }
-                int SubImageWidth = TopRightLocation.X - LeftBottomLocation.X + 1;
-                int SubImageHeight = TopRightLocation.Y - LeftBottomLocation.Y + 1;
+                int SubImageWidth = texImageInfo.TopRightLocation.X - texImageInfo.LeftBottomLocation.X + 1;
+                int SubImageHeight = texImageInfo.TopRightLocation.Y - texImageInfo.LeftBottomLocation.Y + 1;
 
                 Image<Rgba32> image = new Image<Rgba32>(SubImageWidth, SubImageHeight);
                 for (int i = 0; i < SubImageWidth; i++)
@@ -188,7 +169,7 @@ namespace TextureAsset
                     {
                         try
                         {
-                            image[i, j] = Origin_image[LeftBottomLocation.X + i, Origin_image.Height - TopRightLocation.Y + j];
+                            image[i, j] = Origin_image[texImageInfo.LeftBottomLocation.X + i, Origin_image.Height - texImageInfo.TopRightLocation.Y + j];
                         }
                         catch(Exception ex)
                         {
@@ -204,7 +185,7 @@ namespace TextureAsset
 
                     memoryStream.Seek(0, SeekOrigin.Begin);
 
-                    keyValuePairs.Add(filename, new Bitmap(memoryStream));
+                    keyValuePairs.Add(texImageInfo.filename, new Bitmap(memoryStream));
                 }
                 image.Dispose();
             }
@@ -234,7 +215,7 @@ namespace TextureAsset
         /// the height of output,defualt is 4096
         /// </param>
         /// <param name="imagetype">
-        /// the filetype encoder of atlas,default is null (which leads to tga format)
+        /// the filetype encoder of atlas,default is null (which leads to png format)
         /// </param>
         public static void MakeAtlas(string AtlasPath, string folderpath, uint imageWidth = 8192, uint imageHeight = 4096, uint gap = 1, IImageEncoder imagetype = null)
         {
@@ -342,12 +323,9 @@ namespace TextureAsset
 
                 //ImageSharp loads from the top-left pixel, whereas OpenGL loads from the bottom-left, causing the texture to be flipped vertically.
                 //This will correct that, making the texture display properly.
-                metafile.Write(str);
-                metafile.Write(Offset.X);
-                metafile.Write((int)imageHeight - (Offset.Y + keyValuePair.Value.Height - 1));
-                metafile.Write(Offset.X + keyValuePair.Value.Width - 1);
-                metafile.Write((int)imageHeight - Offset.Y);
 
+                new TexImageInfo(str, new Point(Offset.X, (int)imageHeight - (Offset.Y + keyValuePair.Value.Height - 1)), new Point(Offset.X + keyValuePair.Value.Width - 1, (int)imageHeight - Offset.Y)).BinaryWrite(metafile);
+               
                 Offset.Y += keyValuePair.Value.Height + (int)gap;
             }
 
@@ -386,4 +364,44 @@ namespace TextureAsset
     //    {
     //    }
     //} 
+    class TexImageInfo: IBinarySavable
+    {
+        public string filename { get; protected set; }
+        public Point LeftBottomLocation { get; protected set; }
+        public Point TopRightLocation { get; protected set; }
+
+        public void BinaryWrite(BinaryWriter binaryWriter)
+        {
+            binaryWriter.Write(filename);
+            binaryWriter.Write(LeftBottomLocation.X);
+            binaryWriter.Write(LeftBottomLocation.Y);
+            binaryWriter.Write(TopRightLocation.X);
+            binaryWriter.Write(TopRightLocation.Y);
+        }
+
+        public void BinaryRead(BinaryReader binaryReader)
+        {
+            filename = binaryReader.ReadString();
+            Point temp = new Point();
+            temp.X = binaryReader.ReadInt32();
+            temp.Y = binaryReader.ReadInt32();
+            LeftBottomLocation = temp;
+            temp.X = binaryReader.ReadInt32();
+            temp.Y = binaryReader.ReadInt32();
+            TopRightLocation = temp;
+        }
+
+        public TexImageInfo()
+        {
+
+        }
+        public TexImageInfo(string filename, Point LeftBottomLocation, Point TopRightLocation)
+        {
+            this.filename = filename;
+            this.LeftBottomLocation = LeftBottomLocation;
+            this.TopRightLocation = TopRightLocation;
+        }
+    }
+
+
 }
